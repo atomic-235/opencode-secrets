@@ -1,0 +1,26 @@
+{
+  "name": "opencode-secrets",
+  "version": "0.1.0",
+  "description": "Toggleable secret and PII masking for OpenCode. Regex only: no service, no model",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "secrets",
+    "redaction",
+    "pii"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  }
+}
