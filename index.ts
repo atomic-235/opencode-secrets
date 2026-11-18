@@ -260,6 +260,7 @@ export default Plugin.define({
 
     const statusLine = () => `Secrets masking is ${enabled ? "on" : "off"}.`
 
+    let commandRegistered = false
     try {
       await ctx.command.transform((editor) => {
         editor.add({
@@ -282,11 +283,15 @@ export default Plugin.define({
           },
         })
       })
+      commandRegistered = true
     } catch {
-      // Older server without the command API: the prompt hook still handles text commands.
+      // Older server without the command API: the prompt hook below handles text commands.
     }
 
-    // Natural language and markdown command bodies.
+    // Fallback only: with a registered command, the hook would rewrite the message and the
+    // model would answer the rewrite ("Understood") on top of the synthetic status line.
+    if (commandRegistered) return
+
     await ctx.session.hook("prompt", async (event) => {
       const command = parseCommand(event.prompt.text)
       if (!command) return

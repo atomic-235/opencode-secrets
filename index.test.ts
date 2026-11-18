@@ -144,6 +144,7 @@ describe("gitleaks-derived rules", () => {
 describe("command feedback", () => {
   test("replies with the status through session.synthetic", async () => {
     const calls: unknown[] = []
+    const hooks: string[] = []
     let definition: any
 
     const ctx: any = {
@@ -154,7 +155,9 @@ describe("command feedback", () => {
         },
       },
       session: {
-        hook: async () => undefined,
+        hook: async (name: string) => {
+          hooks.push(name)
+        },
         synthetic: async (input: unknown) => {
           calls.push(input)
         },
@@ -167,5 +170,7 @@ describe("command feedback", () => {
     await definition.execute({ sessionID: "ses_test", prompt: { text: "status" } })
 
     expect(calls).toEqual([{ sessionID: "ses_test", text: "Secrets masking is off." }])
+    // A registered command reports through synthetic; the prompt hook must not also fire.
+    expect(hooks).not.toContain("prompt")
   })
 })
