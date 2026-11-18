@@ -89,11 +89,52 @@ const RULES: [string, RegExp][] = [
   ["email", /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi],
 ]
 
+// BEGIN GENERATED RULES
+// Generated from vendor/gitleaks.toml by script/gen-rules.ts — do not edit by hand.
+// Only self-identifying token formats; entropy and keyword-dependent rules are excluded.
+const GITLEAKS_RULES: { id: string; regex: RegExp; group: number }[] = [
+  { id: "1password-service-account-token", regex: new RegExp("ops_eyJ[a-zA-Z0-9+/]{250,}={0,3}", "g"), group: 0 },
+  { id: "age-secret-key", regex: new RegExp("AGE-SECRET-KEY-1[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]{58}", "g"), group: 0 },
+  { id: "clojars-api-token", regex: new RegExp("CLOJARS_[a-z0-9]{60}", "gi"), group: 0 },
+  { id: "databricks-api-token", regex: new RegExp("\\b(dapi[a-f0-9]{32}(?:-\\d)?)(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "digitalocean-pat", regex: new RegExp("\\b(dop_v1_[a-f0-9]{64})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "doppler-api-token", regex: new RegExp("dp\\.pt\\.[a-z0-9]{43}", "gi"), group: 0 },
+  { id: "flyio-access-token", regex: new RegExp("\\b((?:fo1_[\\w-]{43}|fm1[ar]_[a-zA-Z0-9+\\/]{100,}={0,3}|fm2_[a-zA-Z0-9+\\/]{100,}={0,3}))(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "gcp-api-key", regex: new RegExp("\\b(AIza[\\w-]{35})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "github-fine-grained-pat", regex: new RegExp("github_pat_\\w{82}", "g"), group: 0 },
+  { id: "huggingface-access-token", regex: new RegExp("\\b(hf_([a-z]{34}))(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "gi"), group: 1 },
+  { id: "linear-api-key", regex: new RegExp("lin_api_[a-z0-9]{40}", "gi"), group: 0 },
+  { id: "notion-api-token", regex: new RegExp("\\b(ntn_[0-9]{11}[A-Za-z0-9]{32}[A-Za-z0-9]{3})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "perplexity-api-key", regex: new RegExp("\\b(pplx-[a-zA-Z0-9]{48})(?:[\\x60'\"\\s;]|\\\\[nr]|$|\\b)", "g"), group: 1 },
+  { id: "planetscale-api-token", regex: new RegExp("\\b(pscale_tkn_[\\w=\\.-]{32,64})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "gi"), group: 1 },
+  { id: "postman-api-token", regex: new RegExp("\\b(PMAK-[a-f0-9]{24}\\-[a-f0-9]{34})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "gi"), group: 1 },
+  { id: "pulumi-api-token", regex: new RegExp("\\b(pul-[a-f0-9]{40})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "pypi-upload-token", regex: new RegExp("pypi-AgEIcHlwaS5vcmc[\\w-]{50,1000}", "g"), group: 0 },
+  { id: "rubygems-api-token", regex: new RegExp("\\b(rubygems_[a-f0-9]{48})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "sendgrid-api-token", regex: new RegExp("\\b(SG\\.[a-z0-9=_\\-\\.]{66})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "gi"), group: 1 },
+  { id: "shopify-access-token", regex: new RegExp("shpat_[a-fA-F0-9]{32}", "g"), group: 0 },
+  { id: "square-access-token", regex: new RegExp("\\b((?:EAAA|sq0atp-)[\\w-]{22,60})(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "g"), group: 1 },
+  { id: "twilio-api-key", regex: new RegExp("SK[0-9a-fA-F]{32}", "g"), group: 0 },
+  { id: "vault-service-token", regex: new RegExp("\\b((?:hvs\\.[\\w-]{90,120}|s\\.([a-z0-9]{24})))(?:[\\x60'\"\\s;]|\\\\[nr]|$)", "gi"), group: 1 },
+]
+// END GENERATED RULES
+
 /** Mask every recognised secret or PII pattern in a single string. */
 export function maskText(value: string): string {
   let out = value
   for (const secret of ENV_VALUES) out = out.split(secret).join("[REDACTED:env]")
   for (const [label, rule] of RULES) out = out.replace(rule, `[REDACTED:${label}]`)
+  for (const rule of GITLEAKS_RULES) {
+    out = out.replace(rule.regex, (...args: unknown[]) => {
+      const match = args[0] as string
+      const groups = args.slice(1, args.length - 2)
+      const target = rule.group > 0 ? groups[rule.group - 1] : undefined
+      if (typeof target === "string" && target.length > 0) {
+        return match.replace(target, `[REDACTED:${rule.id}]`)
+      }
+      return `[REDACTED:${rule.id}]`
+    })
+  }
   out = out.replace(
     /((?:password|passwd|pwd|secret|token|api[_-]?key)\s*[:=]\s*["'])([^"']{6,})(["'])/gi,
     "$1[REDACTED:secret]$3",

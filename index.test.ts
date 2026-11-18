@@ -97,3 +97,46 @@ describe("body handling", () => {
     expect(await redactBody(body, async (texts) => texts.map(maskText))).toBeNull()
   })
 })
+
+describe("gitleaks-derived rules", () => {
+  // Tokens are assembled at runtime so no secret-shaped literal lands in the repo.
+  const cases: [string, string][] = [
+    ["databricks", "dapi" + "0123456789abcdef".repeat(2)],
+    ["huggingface", "hf_" + "abcdefghijklmnopqrstuvwxyzabcdefgh"],
+    ["github-fine-grained", "github_pat_" + "A".repeat(82)],
+    ["gcp", "AIza" + "B".repeat(35)],
+    ["doppler", "dp.pt." + "c".repeat(43)],
+    ["pulumi", "pul-" + "d".repeat(40)],
+    ["digitalocean", "dop_v1_" + "e".repeat(64)],
+    ["square", "sq0atp-" + "f".repeat(22)],
+    ["shopify", "shpat_" + "a".repeat(32)],
+    ["perplexity", "pplx-" + "g".repeat(48)],
+  ]
+
+  const labels: Record<string, string> = {
+    databricks: "databricks-api-token",
+    huggingface: "huggingface-access-token",
+    "github-fine-grained": "github-fine-grained-pat",
+    gcp: "gcp-api-key",
+    doppler: "doppler-api-token",
+    pulumi: "pulumi-api-token",
+    digitalocean: "digitalocean-pat",
+    square: "square-access-token",
+    shopify: "shopify-access-token",
+    perplexity: "perplexity-api-key",
+  }
+
+  for (const [name, token] of cases) {
+    test(`masks ${name}`, () => {
+      const masked = maskText("prefix " + token + " suffix")
+      expect(masked).not.toContain(token)
+      expect(masked).toContain(`[REDACTED:${labels[name]}]`)
+      expect(masked.startsWith("prefix ")).toBe(true)
+      expect(masked.endsWith(" suffix")).toBe(true)
+    })
+  }
+
+  test("leaves ordinary text alone after the extra rules", () => {
+    expect(maskText("the build finished in 4.2 seconds")).toBe("the build finished in 4.2 seconds")
+  })
+})

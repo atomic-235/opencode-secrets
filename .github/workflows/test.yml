@@ -19,4 +19,7 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Generated rules are current
+        run: bun script/gen-rules.ts --check
+
       - run: bun test

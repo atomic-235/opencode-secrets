@@ -10,6 +10,10 @@ Outgoing JSON request bodies only, and only while the toggle is on:
 
 - provider token formats: AWS, GitHub, GitLab, npm, Slack, Stripe, JWT, PEM private keys,
   Discord, Telegram
+- 23 more self-identifying formats generated from [gitleaks](https://github.com/gitleaks/gitleaks):
+  Databricks, Hugging Face, GitHub fine-grained PATs, GCP, Doppler, Pulumi, DigitalOcean,
+  Square, Shopify, Perplexity, 1Password service accounts, age, PyPI, Vault, SendGrid, Twilio,
+  Postman, PlanetScale, Rubygems, Linear, Notion, Clojars, Fly.io
 - URL credentials (`postgres://user:pass@…`), bearer tokens, emails
 - quoted `password` / `secret` / `token` / `api_key` assignments
 - the exact values of secret-looking environment variables (`*_TOKEN`, `*_KEY`, `*_SECRET`,
@@ -65,12 +69,16 @@ Off by default. The state is stored in plugin storage and survives restarts.
 ## Development
 
 ```bash
-bun test        # 12 tests: mask rules, command parsing, body rewriting
+bun test                       # 23 tests: mask rules, command parsing, body rewriting
+bun script/gen-rules.ts        # regenerate the gitleaks-derived rules into index.ts
+bun script/gen-rules.ts --check  # CI guard: generated rules match vendor/gitleaks.toml
 ```
 
 ## Layout
 
 ```
-index.ts     the plugin (also the whole npm package)
-install.sh   one-file installer, remote or from a checkout
+index.ts          the plugin (also the whole npm package)
+install.sh        one-file installer, remote or from a checkout
+script/           generator for the gitleaks-derived rules
+vendor/           pinned gitleaks.toml (MIT) and its revision
 ```
