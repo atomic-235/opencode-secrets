@@ -12,6 +12,7 @@ repo="atomic-235/opencode-secrets"
 ref="${SECRETS_REF:-main}"
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 plugins_dir="$config_dir/plugins"
+commands_dir="$config_dir/commands"
 target="$plugins_dir/secrets.ts"
 
 cleanup_dir=""
@@ -28,8 +29,8 @@ usage() {
 
 uninstall() {
   if [ -f "$target" ]; then
-    rm -f "$target"
-    echo "Removed $target"
+    rm -f "$target" "$config_dir/commands/mask.md"
+    echo "Removed $target and $config_dir/commands/mask.md"
     echo "Restart OpenCode to unload it: opencode service restart"
   else
     echo "Nothing to remove at $target"
@@ -52,6 +53,7 @@ install() {
 
   if [ -f "$here/index.ts" ]; then
     source_file="$here/index.ts"
+    source_command="$here/commands/mask.md"
   else
     cleanup_dir="${TMPDIR:-/tmp}/opencode-secrets-$$"
     mkdir -p "$cleanup_dir"
@@ -61,15 +63,18 @@ install() {
     tar -xzf "$archive" -C "$cleanup_dir"
     source_dir=$(find "$cleanup_dir" -mindepth 1 -maxdepth 1 -type d | head -n 1)
     source_file="$source_dir/index.ts"
+    source_command="$source_dir/commands/mask.md"
     if [ ! -f "$source_file" ]; then
       echo "ERROR: downloaded archive did not contain index.ts" >&2
       exit 1
     fi
   fi
 
-  mkdir -p "$plugins_dir"
+  mkdir -p "$plugins_dir" "$commands_dir"
   cp "$source_file" "$target"
+  cp "$source_command" "$commands_dir/mask.md"
   echo "Installed $target"
+  echo "Installed $commands_dir/mask.md"
   echo
   echo "Next:"
   echo "  1. Restart OpenCode:  opencode service restart"

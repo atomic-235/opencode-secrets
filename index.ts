@@ -258,47 +258,20 @@ export default Plugin.define({
       await ctx.storage.set(STORAGE_KEY, enabled)
     }
 
-    const statusLine = () => `Secrets masking is ${enabled ? "on" : "off"}.`
-
-    let commandRegistered = false
-    try {
-      await ctx.command.transform((editor) => {
-        editor.add({
-          name: "mask",
-          description: "Toggle secret and PII masking (on|off|status)",
-          execute: async ({ sessionID, prompt }) => {
-            const argument = (prompt?.text ?? "").trim()
-            const command =
-              parseCommand(argument) ?? parseCommand(`/mask ${argument}`) ?? "toggle"
-
-            if (command !== "status") {
-              await setEnabled(command === "toggle" ? !enabled : command === "on")
-            }
-
-            try {
-              await ctx.session.synthetic({ sessionID, text: statusLine() })
-            } catch {
-              // Feedback is best-effort; the flag change is the part that matters.
-            }
-          },
-        })
-      })
-      commandRegistered = true
-    } catch {
-      // Older server without the command API: the prompt hook below handles text commands.
-    }
-
-    // Fallback only: with a registered command, the hook would rewrite the message and the
-    // model would answer the rewrite ("Understood") on top of the synthetic status line.
-    if (commandRegistered) return
-
     await ctx.session.hook("prompt", async (event) => {
       const command = parseCommand(event.prompt.text)
       if (!command) return
 
-      if (command !== "status") await setEnabled(command === "toggle" ? !enabled : command === "on")
+      // Status is observational: rewrite the prompt so the model reports it verbatim,
+      // exactly like caveman does, and leave the flag alone.
+      if (command === "status") {
+        event.prompt.text =
+          `Report this status verbatim without changing mode: Secrets masking: ${enabled ? "on" : "off"}`
+        return
+      }
 
-      event.prompt.text = `${statusLine()} Reply with that one line and nothing else.`
+      // Mode changes are not rewritten: the model answers the user's message normally.
+      await setEnabled(command === "toggle" ? !enabled : command === "on")
     })
 
     await ctx.session.hook("http.request", async (event) => {

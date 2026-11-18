@@ -141,36 +141,57 @@ describe("gitleaks-derived rules", () => {
   })
 })
 
-describe("command feedback", () => {
-  test("replies with the status through session.synthetic", async () => {
-    const calls: unknown[] = []
-    const hooks: string[] = []
-    let definition: any
+describe("prompt-hook feedback", () => {
+  const setup = async () => {
+    const hooks: Record<string, (event: any) => Promise<void>> = {}
+    const stored: Record<string, unknown> = {}
 
     const ctx: any = {
-      storage: { get: async () => false, set: async () => undefined },
-      command: {
-        transform: async (callback: (editor: any) => void) => {
-          callback({ add: (item: any) => (definition = item) })
+      storage: {
+        get: async (key: string) => stored[key],
+        set: async (key: string, value: unknown) => {
+          stored[key] = value
         },
       },
       session: {
-        hook: async (name: string) => {
-          hooks.push(name)
-        },
-        synthetic: async (input: unknown) => {
-          calls.push(input)
+        hook: async (name: string, callback: (event: any) => Promise<void>) => {
+          hooks[name] = callback
         },
       },
     }
 
     const plugin: any = (await import("./index.ts")).default
     await plugin.setup(ctx)
+    return { hooks, stored }
+  }
 
-    await definition.execute({ sessionID: "ses_test", prompt: { text: "status" } })
+  test("status rewrites the prompt verbatim and leaves the flag alone", async () => {
+    const { hooks } = await setup()
+    const event = { prompt: { text: "Secrets masking: status" } }
 
-    expect(calls).toEqual([{ sessionID: "ses_test", text: "Secrets masking is off." }])
-    // A registered command reports through synthetic; the prompt hook must not also fire.
-    expect(hooks).not.toContain("prompt")
+    await hooks.prompt(event)
+
+    expect(event.prompt.text).toBe(
+      "Report this status verbatim without changing mode: Secrets masking: off",
+    )
+  })
+
+  test("a mode change flips the flag and does not rewrite the prompt", async () => {
+    const { hooks, stored } = await setup()
+    const event = { prompt: { text: "Secrets masking: on" } }
+
+    await hooks.prompt(event)
+
+    expect(stored["secrets.enabled"]).toBe(true)
+    expect(event.prompt.text).toBe("Secrets masking: on")
+  })
+
+  test("unrelated messages are untouched", async () => {
+    const { hooks } = await setup()
+    const event = { prompt: { text: "cat /tmp/opencode/test.env" } }
+
+    await hooks.prompt(event)
+
+    expect(event.prompt.text).toBe("cat /tmp/opencode/test.env")
   })
 })
