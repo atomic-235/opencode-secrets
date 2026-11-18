@@ -275,11 +275,7 @@ export default Plugin.define({
             }
 
             try {
-              await ctx.session.synthetic({
-                sessionID,
-                payload: { text: statusLine() },
-                delivery: "queue",
-              } as any)
+              await ctx.session.synthetic({ sessionID, text: statusLine() })
             } catch {
               // Feedback is best-effort; the flag change is the part that matters.
             }

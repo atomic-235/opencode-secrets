@@ -140,3 +140,32 @@ describe("gitleaks-derived rules", () => {
     expect(maskText("the build finished in 4.2 seconds")).toBe("the build finished in 4.2 seconds")
   })
 })
+
+describe("command feedback", () => {
+  test("replies with the status through session.synthetic", async () => {
+    const calls: unknown[] = []
+    let definition: any
+
+    const ctx: any = {
+      storage: { get: async () => false, set: async () => undefined },
+      command: {
+        transform: async (callback: (editor: any) => void) => {
+          callback({ add: (item: any) => (definition = item) })
+        },
+      },
+      session: {
+        hook: async () => undefined,
+        synthetic: async (input: unknown) => {
+          calls.push(input)
+        },
+      },
+    }
+
+    const plugin: any = (await import("./index.ts")).default
+    await plugin.setup(ctx)
+
+    await definition.execute({ sessionID: "ses_test", prompt: { text: "status" } })
+
+    expect(calls).toEqual([{ sessionID: "ses_test", text: "Secrets masking is off." }])
+  })
+})
